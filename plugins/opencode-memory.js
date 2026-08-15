@@ -83,7 +83,10 @@ export const OpenCodeMemory = async ({ client, $, directory }) => {
         if (!(await Bun.file(memoryPath).exists())) return
 
         // Not a git repo -> the git-based "was it saved" check is undefined.
-        const inside = await git`git rev-parse --is-inside-work-tree`
+        // stdout is redirected to /dev/null: only the exit code is used, and
+        // Bun's $ streams command output to the terminal as well as capturing
+        // it (rev-parse would otherwise print "true" into the TUI).
+        const inside = await git`git rev-parse --is-inside-work-tree >/dev/null`
         if (inside.exitCode !== 0) return
 
         // memory.md intentionally gitignored -> git-status detection is
@@ -94,9 +97,10 @@ export const OpenCodeMemory = async ({ client, $, directory }) => {
 
         // Already saved this turn? `git status --porcelain` covers modified,
         // staged, and untracked memory.md (untracked happens right after a
-        // scaffold, before the first commit).
-        const status = await git`git status --porcelain -- memory.md`
-        if (status.stdout.toString().trim() !== "") return
+        // scaffold, before the first commit). Consumed via .text() so the
+        // porcelain output is captured without leaking into the terminal.
+        const status = await git`git status --porcelain -- memory.md`.text()
+        if (status.trim() !== "") return
 
         // Cooldown: at most one reminder per session per window, so a clean
         // memory.md does not nag on every single turn.
