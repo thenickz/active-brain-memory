@@ -72,9 +72,11 @@ The skill makes memory updates voluntary (the agent follows it). The plugin make
 
 - At the end of every agent turn (`session.idle`) it checks whether `memory.md` was touched in this project.
 - If not, it injects a prompt asking the agent to run the skill and update `memory.md`.
-- **Natural termination**: once the model saves, `git status` shows `memory.md` modified, so the next `session.idle` is a no-op. No cooldown, no lock files.
+- **Natural termination**: once the model saves, `git status` shows `memory.md` modified, so the next `session.idle` is a no-op.
+- **Cooldown**: at most one reminder per session every 10 minutes, so a clean `memory.md` does not nag on every turn.
 - **Loop guard**: if the model answers "done" without saving, the plugin will not re-inject until a new user message arrives — no infinite prompts.
-- It does **nothing** in projects without `memory.md`, or in projects that are not git repos.
+- **Root sessions only**: subagent turns (sessions with a parent) never trigger enforcement.
+- It does **nothing** in projects without `memory.md`, in projects that are not git repos, or in projects where `memory.md` is **gitignored** (a per-project opt-out: `git status` can never see an ignored file as modified, so the "saved?" check would never terminate).
 
 Disable it: `~/.active-brain-memory/install.sh --unlink` (removes all symlinks) or delete `~/.config/opencode/plugins/opencode-memory.js`.
 
@@ -119,7 +121,9 @@ The plugin only acts when **all** of these are true:
 
 - `memory.md` exists in the project root (`ls memory.md`).
 - The project is a git repo (`git rev-parse --is-inside-work-tree` succeeds).
+- `memory.md` is **not** gitignored (`git check-ignore --quiet -- memory.md` fails). Gitignored projects intentionally skip enforcement — an ignored file can never show as modified, so the "saved?" check would loop forever.
 - `memory.md` is clean — `git status --porcelain -- memory.md` returns empty. If the model already saved this turn, the plugin is intentionally silent (that's the natural termination).
+- The turn was on a **root session** (not a subagent) and at least 10 minutes passed since the last reminder (cooldown).
 - The plugin is loaded: `ls -l ~/.config/opencode/plugins/opencode-memory.js`, and opencode was **restarted** after install (plugins load at startup).
 
 ### Memory updates stop after a "done"
