@@ -67,4 +67,4 @@ No relevant information stays trapped in the session context. Everything that ma
 ## Installation
 
 - Install: `git clone https://github.com/thenickz/active-brain-memory.git ~/.active-brain-memory && ~/.active-brain-memory/install.sh`, then restart opencode (plugins load at startup).
-- Optional opencode enforcement plugin: makes memory.md updates automatic — at the end of every turn, if `memory.md` was not touched, it injects a prompt to run this skill. Details in the repo README.
+- Optional opencode enforcement plugin: makes memory.md updates automatic — at the end of every turn, if `memory.md` was not touched, it injects a prompt to run this skill. Root sessions only, at most once per 10 minutes, and skipped in projects where `memory.md` is gitignored. Details in the repo README.
